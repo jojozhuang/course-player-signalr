@@ -1,0 +1,92 @@
+﻿
+@{
+    ViewBag.Title = "Course";
+}
+
+<h2>Course Player</h2>
+<div class="playercontainer">
+    <table width="100%">
+        <tr>
+            <td><label for="currenttime">Current Time:</label><input type="text" id="currenttime" readonly style="border:0; color:#f6931f; font-weight:bold;"></td>
+            <td><input type="button" id="btnplay" value="Play" /></td>
+            <td align="right"><label for="total">Total Time:</label><input type="text" id="total" readonly style="border:0; color:#f6931f; font-weight:bold;"></td>
+        </tr>
+        <tr>
+            <td colspan="3"><div id="processbar" style="margin-top:10px"></div></td>
+        </tr>
+    </table>
+    <table width="100%" style="margin-top:20px">
+        <tr>
+            <td rowspan="2" width="50%">
+                <video id="videoplayer" class="video-js vjs-default-skin" controls preload="none" width="530" height="690" data-setup="{}">
+                    <source src="http://localhost:22962/lecture.mp4" type="video/mp4">
+                    <track kind="captions" src="../shared/example-captions.vtt" srclang="en" label="English"></track>
+                    <!-- Tracks need an ending tag thanks to IE9 -->
+                    <track kind="subtitles" src="../shared/example-captions.vtt" srclang="en" label="English"></track>
+                    <!-- Tracks need an ending tag thanks to IE9 -->
+                    <p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a></p>
+                </video>
+            </td>
+            <td width="50%"><canvas id="playerss" width="500" height="330"></canvas></td>
+        </tr>
+        <tr>
+            <td><canvas id="playerwb" width="500" height="330"></canvas></td>
+        </tr>
+    </table>
+    <input type="hidden" id="groupName" value="grpjohnny" />
+    <canvas id="workingss" style="display:none" width="500" height="300"></canvas>
+    <canvas id="workingwb" style="display:none" width="500" height="300"></canvas>
+</div>
+
+<style type="text/css">
+    #draw {
+        border: 1px solid #AAA;
+        background: #EEE;
+    }
+</style>
+
+<!--Add script to update the page and send messages.-->
+<script type="text/javascript">
+    $(function () {
+        $("#groupName").val("johnnygrp" + Math.floor((Math.random() * 1000) + 1));
+        var videoplayer = videojs('videoplayer');
+        var hub = $.connection.hub;
+        // Declare a proxy to reference the hub.
+        var playerHub = $.connection.playerHub;
+        console.log(playerHub);
+        //draw screenshot
+        playerHub.client.broadcastDrawScreenshot = function (ssdata) {
+            //console.log("ssdata:" + ssdata)
+            drawScreenshot(ssdata, $('#workingss'), $('#playerss'));
+        };
+        playerHub.client.broadcastDrawWhiteboard = function (wbdata) {
+            //console.log("wbdata:" + wbdata)
+            drawWhiteboard(wbdata, $('#workingwb'), $('#playerwb'));
+        };
+        // use jquery slider control to create process bar
+        $("#processbar").slider({
+            range: "max",
+            min: 0,
+            max: 4 * 60 * 60 - 30 * 60,
+            value: 0,
+            slide: function (event, ui) {
+                $("#currenttime").val(getReadableTimeText(ui.value));
+            },
+            stop: function (event, ui) {
+                $("#currenttime").val(getReadableTimeText(ui.value));
+                clearScreenshot($('#workingss'), $('#playerss'));
+                clearWhiteboard($('#workingwb'), $('#playerwb'));
+                //videoplayer.currentTime(ui.value);
+            }
+        });
+        $("#currenttime").val(getReadableTimeText($("#processbar").slider("value")));
+        $("#total").val(getReadableTimeText(4 * 60 * 60 - 30 * 60));
+
+        // play course and emit time to server
+        var playstate = "stopped";
+        $("#btnplay").click(function () {
+            playstate = playCourse(hub, playerHub, playstate, $("#btnplay"), $("#processbar"), $("#currenttime"), videoplayer, $('#workingss'), $('#playerss'), $('#workingwb'), $('#playerwb'));
+        });
+    });
+</script>
+
