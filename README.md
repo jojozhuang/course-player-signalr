@@ -1,4 +1,4 @@
-# Online Course Play
+# Online Course Player
 A realtime online course player, built with SignalR and ASP.NET in C#.
 
 # Function
